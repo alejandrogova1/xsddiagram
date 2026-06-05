@@ -96,7 +96,7 @@
             <div class="canvas-empty" id="canvas-empty">
                 <div class="text-center text-muted">
                     <h4>Sube un archivo XSD o indica una URL</h4>
-                    <p>Luego elige un elemento raíz y pulsa <em>Agregar al diagrama</em>.</p>
+                    <p>El diagrama se generará automáticamente con la raíz seleccionada.</p>
                 </div>
             </div>
             <svg id="diagram" xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>
@@ -132,6 +132,9 @@
                         <tr class="empty-row"><td colspan="4">Sin atributos</td></tr>
                         </tbody>
                     </table>
+                    <div class="attr-detail" id="attr-detail">
+                        <div class="attr-detail-empty text-muted small">Selecciona un atributo para ver su detalle.</div>
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="tab-elements" role="tabpanel">
                     <table class="table table-sm table-striped prop-table">

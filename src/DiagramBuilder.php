@@ -457,7 +457,7 @@ final class DiagramBuilder
     }
 
     /**
-     * @return list<array<string,string>>
+     * @return list<array<string,mixed>>
      */
     private function annotatedAttributes(DOMElement $node, string $ns): array
     {
@@ -484,7 +484,7 @@ final class DiagramBuilder
     }
 
     /**
-     * @param list<array<string,string>> $list
+     * @param list<array<string,mixed>> $list
      */
     private function complexTypeAttributes(DOMElement $ct, string $ns, array &$list): void
     {
@@ -497,7 +497,19 @@ final class DiagramBuilder
                     $this->parseAttributeGroup($child, $list);
                     break;
                 case 'anyAttribute':
-                    $list[] = ['name' => '*', 'type' => 'any', 'use' => '', 'default' => ''];
+                    $list[] = [
+                        'name' => '*',
+                        'type' => 'any',
+                        'typeQName' => '',
+                        'use' => '',
+                        'default' => '',
+                        'fixed' => '',
+                        'form' => '',
+                        'documentation' => '',
+                        'baseType' => '',
+                        'facets' => [],
+                        'enumerations' => [],
+                    ];
                     break;
                 case 'complexContent':
                 case 'simpleContent':
@@ -525,8 +537,15 @@ final class DiagramBuilder
         }
     }
 
+    /** @var list<string> */
+    private const FACET_NAMES = [
+        'pattern', 'minLength', 'maxLength', 'length',
+        'minInclusive', 'maxInclusive', 'minExclusive', 'maxExclusive',
+        'totalDigits', 'fractionDigits', 'whiteSpace',
+    ];
+
     /**
-     * @param list<array<string,string>> $list
+     * @param list<array<string,mixed>> $list
      */
     private function parseAttribute(DOMElement $attr, array &$list): void
     {
@@ -535,38 +554,164 @@ final class DiagramBuilder
             [$rns, $rlocal] = $this->schema->resolveQName($attr, $ref);
             $refNode = $this->schema->lookup('attribute', $rns, $rlocal);
             if ($refNode !== null) {
-                $before = count($list);
-                $this->parseAttribute($refNode, $list);
+                $entry = $this->buildAttributeEntry($refNode);
                 $use = $attr->getAttribute('use');
-                if ($use !== '' && count($list) > $before) {
-                    $list[count($list) - 1]['use'] = $use;
+                if ($use !== '') {
+                    $entry['use'] = $use;
                 }
+                $list[] = $entry;
                 return;
             }
-            $list[] = ['name' => $rlocal, 'type' => '', 'use' => $attr->getAttribute('use') ?: 'optional', 'default' => ''];
+            $list[] = [
+                'name' => $rlocal,
+                'type' => '',
+                'typeQName' => '',
+                'use' => $attr->getAttribute('use') ?: 'optional',
+                'default' => '',
+                'fixed' => '',
+                'form' => '',
+                'documentation' => '',
+                'baseType' => '',
+                'facets' => [],
+                'enumerations' => [],
+            ];
             return;
         }
 
-        $type = '';
+        $list[] = $this->buildAttributeEntry($attr);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function buildAttributeEntry(DOMElement $attr): array
+    {
         $typeAttr = $attr->getAttribute('type');
+        $type = '';
         if ($typeAttr !== '') {
             [, $type] = $this->schema->resolveQName($attr, $typeAttr);
         } else {
-            $simpleType = $this->firstXsChild($attr, 'simpleType');
-            if ($simpleType !== null) {
-                $restriction = $this->firstXsChild($simpleType, 'restriction');
+            $inline = $this->firstXsChild($attr, 'simpleType');
+            if ($inline !== null) {
+                $restriction = $this->firstXsChild($inline, 'restriction');
                 if ($restriction !== null && $restriction->getAttribute('base') !== '') {
                     [, $type] = $this->schema->resolveQName($restriction, $restriction->getAttribute('base'));
                 }
             }
         }
 
-        $list[] = [
+        $typeMeta = $this->collectSimpleTypeMetadata($this->resolveAttributeSimpleType($attr));
+        if ($type === '' && $typeMeta['baseType'] !== '') {
+            $type = $typeMeta['baseType'];
+        }
+
+        return [
             'name' => $attr->getAttribute('name'),
             'type' => $type,
+            'typeQName' => $typeAttr,
             'use' => $attr->getAttribute('use') ?: 'optional',
             'default' => $attr->getAttribute('default'),
+            'fixed' => $attr->getAttribute('fixed'),
+            'form' => $attr->getAttribute('form'),
+            'documentation' => $this->annotationText($attr) ?? '',
+            'baseType' => $typeMeta['baseType'],
+            'facets' => $typeMeta['facets'],
+            'enumerations' => $typeMeta['enumerations'],
         ];
+    }
+
+    private function resolveAttributeSimpleType(DOMElement $attr): ?DOMElement
+    {
+        $inline = $this->firstXsChild($attr, 'simpleType');
+        if ($inline !== null) {
+            return $inline;
+        }
+
+        $typeAttr = $attr->getAttribute('type');
+        if ($typeAttr === '') {
+            return null;
+        }
+
+        [$tns, $tlocal] = $this->schema->resolveQName($attr, $typeAttr);
+        $typeNode = $this->schema->lookup('type', $tns, $tlocal);
+        if ($typeNode !== null && $typeNode->localName === 'simpleType') {
+            return $typeNode;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{baseType:string,facets:array<string,string>,enumerations:list<array{value:string,documentation:string}>}
+     */
+    private function collectSimpleTypeMetadata(?DOMElement $simpleType): array
+    {
+        if ($simpleType === null) {
+            return ['baseType' => '', 'facets' => [], 'enumerations' => []];
+        }
+
+        $chain = [];
+        $current = $simpleType;
+        $visited = [];
+
+        while ($current !== null) {
+            $id = $current->getAttribute('xsdid') ?: spl_object_hash($current);
+            if (isset($visited[$id])) {
+                break;
+            }
+            $visited[$id] = true;
+            $chain[] = $current;
+
+            $restriction = $this->firstXsChild($current, 'restriction');
+            if ($restriction === null) {
+                break;
+            }
+
+            $base = $restriction->getAttribute('base');
+            if ($base === '') {
+                break;
+            }
+
+            [$bns, $blocal] = $this->schema->resolveQName($restriction, $base);
+            $baseNode = $this->schema->lookup('type', $bns, $blocal);
+            if ($baseNode !== null && $baseNode->localName === 'simpleType') {
+                $current = $baseNode;
+            } else {
+                $chain[] = $blocal;
+                break;
+            }
+        }
+
+        $facets = [];
+        $enumerations = [];
+        $baseType = '';
+
+        for ($i = count($chain) - 1; $i >= 0; $i--) {
+            $item = $chain[$i];
+            if (is_string($item)) {
+                $baseType = $item;
+                continue;
+            }
+
+            $restriction = $this->firstXsChild($item, 'restriction');
+            if ($restriction === null) {
+                continue;
+            }
+
+            foreach ($this->xsChildren($restriction) as $facet) {
+                $local = $facet->localName;
+                if ($local === 'enumeration') {
+                    $enumerations[] = [
+                        'value' => $facet->getAttribute('value'),
+                        'documentation' => $this->annotationText($facet) ?? '',
+                    ];
+                } elseif (in_array($local, self::FACET_NAMES, true)) {
+                    $facets[$local] = $facet->getAttribute('value');
+                }
+            }
+        }
+
+        return ['baseType' => $baseType, 'facets' => $facets, 'enumerations' => $enumerations];
     }
 
     /**

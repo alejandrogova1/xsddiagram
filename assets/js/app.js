@@ -112,6 +112,7 @@
             clearDiagram();
             enableControls(true);
             info('Esquema cargado: ' + (res.source || '') + ' \u2014 ' + res.roots.length + ' raíces.');
+            addSelectedRoot();
             if (res.warnings && res.warnings.length) {
                 Swal.fire({
                     icon: 'warning', title: 'Cargado con avisos',
