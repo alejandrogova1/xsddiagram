@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:po="http://example.com/po"
+           targetNamespace="http://example.com/po"
+           elementFormDefault="qualified">
+
+  <xs:element name="purchaseOrder" type="po:PurchaseOrderType">
+    <xs:annotation>
+      <xs:documentation>Top level purchase order document element.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="comment" type="xs:string"/>
+
+  <xs:complexType name="PurchaseOrderType">
+    <xs:sequence>
+      <xs:element name="shipTo" type="po:Address"/>
+      <xs:element name="billTo" type="po:Address"/>
+      <xs:element ref="po:comment" minOccurs="0"/>
+      <xs:element name="items" type="po:Items"/>
+    </xs:sequence>
+    <xs:attribute name="orderDate" type="xs:date"/>
+  </xs:complexType>
+
+  <xs:complexType name="Address">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="street" type="xs:string"/>
+      <xs:element name="city" type="xs:string"/>
+      <xs:element name="country" type="po:CountryCode"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Items">
+    <xs:sequence>
+      <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:choice>
+            <xs:element name="productName" type="xs:string"/>
+            <xs:element name="sku" type="xs:string"/>
+          </xs:choice>
+          <xs:attribute name="quantity" type="xs:positiveInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="CountryCode">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="US">
+        <xs:annotation><xs:documentation>United States</xs:documentation></xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="MX"/>
+      <xs:enumeration value="CA"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

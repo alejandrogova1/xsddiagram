@@ -1,0 +1,210 @@
+:root {
+    --topbar-bg: #f4f5f7;
+    --panel-bg: #fafbfc;
+    --canvas-bg: #ffffff;
+    --border: #d9dce1;
+    --side-width: 340px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 14px;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* ---------- Topbar ---------- */
+.topbar {
+    background: var(--topbar-bg);
+    padding: 6px 10px;
+    flex: 0 0 auto;
+}
+
+.topbar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.topbar-row.second-row {
+    margin-top: 6px;
+}
+
+.brand {
+    font-weight: 700;
+    color: #2b3038;
+    white-space: nowrap;
+}
+
+.topbar .vr {
+    align-self: stretch;
+    min-height: 24px;
+    opacity: .35;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.url-input { width: 260px; }
+.root-select { width: 320px; max-width: 40vw; }
+.expand-level { width: 110px; }
+.row-label { font-size: 12px; color: #5b626c; }
+.option .form-check-label { font-size: 12px; }
+.zoom-group .btn { min-width: 38px; }
+
+/* ---------- Body ---------- */
+.body {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.canvas-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    overflow: auto;
+    background:
+        linear-gradient(90deg, rgba(0,0,0,.03) 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(rgba(0,0,0,.03) 1px, transparent 1px) 0 0 / 24px 24px,
+        var(--canvas-bg);
+}
+
+#diagram {
+    display: block;
+    user-select: none;
+}
+
+.canvas-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.canvas-wrap.has-content .canvas-empty { display: none; }
+.canvas-wrap.panning { cursor: grabbing; }
+
+/* ---------- Resizer ---------- */
+.resizer {
+    flex: 0 0 5px;
+    cursor: col-resize;
+    background: var(--border);
+}
+.resizer:hover { background: #aeb4bd; }
+
+/* ---------- Side panel ---------- */
+.side-panel {
+    flex: 0 0 var(--side-width);
+    width: var(--side-width);
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.side-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+.prop-name { font-weight: 700; font-size: 15px; word-break: break-word; }
+.prop-type { font-size: 12px; color: #6b7280; word-break: break-word; }
+
+#side-tabs { padding: 0 6px; }
+#side-tabs .nav-link { padding: 6px 8px; font-size: 13px; }
+
+.side-tab-content {
+    flex: 0 0 auto;
+    max-height: 38vh;
+    overflow: auto;
+    border-bottom: 1px solid var(--border);
+}
+
+.prop-table {
+    margin: 0;
+    font-size: 12.5px;
+}
+.prop-table th {
+    position: sticky;
+    top: 0;
+    background: #eef0f3;
+    z-index: 1;
+}
+.prop-table td { word-break: break-word; }
+.empty-row td { color: #9aa1ab; font-style: italic; }
+
+.side-section {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.side-section.flex-grow-1 { flex: 1 1 auto; }
+.side-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+.enum-list {
+    max-height: 18vh;
+    overflow: auto;
+}
+.enum-list .badge {
+    margin: 0 4px 4px 0;
+    font-weight: 500;
+}
+.doc-box {
+    flex: 1 1 auto;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    color: #2b3038;
+}
+
+/* ---------- Status bar ---------- */
+.statusbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--topbar-bg);
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #4b5560;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.status-info { font-family: inherit; color: #6b7280; }
+
+/* ---------- Diagram SVG elements ---------- */
+#diagram text { pointer-events: none; }
+#diagram .node-hit { cursor: pointer; fill: transparent; }
+#diagram .expand-btn { cursor: pointer; }
+#diagram .di-selected rect.di-box,
+#diagram .di-selected path.di-box {
+    fill: #fff7d6;
+    stroke: #e0a800;
+}
